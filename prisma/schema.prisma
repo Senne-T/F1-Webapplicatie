@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider   = "prisma-client"
+  engineType = "client"
+  output     = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  User
+}
+
+model User {
+  id       String    @id @unique @default(uuid()) @db.Uuid
+  email    String    @unique @db.VarChar(255)
+  password String
+  username String
+  role     Role      @default(User)
+  sessions Session[]
+}
+
+model Session {
+  id          String   @id @unique @default(uuid()) @db.Uuid
+  activeFrom  DateTime @default(now())
+  activeUntil DateTime
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Driver {
+  id          String   @id @unique @default(uuid()) @db.Uuid
+  firstName   String   @db.VarChar(255)
+  lastName    String   @db.VarChar(255)
+  nationality String   @db.VarChar(255)
+  number      Int
+  birthDate   DateTime
+  imageUrl    String
+
+  teamId String @db.Uuid
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  results Result[]
+}
+
+model Team {
+  id            String @id @unique @default(uuid()) @db.Uuid
+  name          String @db.VarChar(255)
+  location      String @db.VarChar(255)
+  principal     String @db.VarChar(255)
+  engine        String @db.VarChar(255)
+  chassis       String @db.VarChar(255)
+  firstEntry    Int
+  championships Int
+  color         String @db.VarChar(255)
+  imageUrl      String
+
+  drivers Driver[]
+}
+
+model Circuit {
+  id       String @id @unique @default(uuid()) @db.Uuid
+  name     String @db.VarChar(255)
+  country  String @db.VarChar(255)
+  city     String @db.VarChar(255)
+  lengthKm Float
+  races    Race[]
+}
+
+model Season {
+  id    String @id @unique @default(uuid()) @db.Uuid
+  year  Int    @unique
+  races Race[]
+}
+
+model Race {
+  id        String   @id @unique @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(255)
+  date      DateTime
+  laps      Int
+  completed Boolean
+
+  circuitId String  @db.Uuid
+  circuit   Circuit @relation(fields: [circuitId], references: [id], onDelete: Cascade)
+
+  seasonId String @db.Uuid
+  season   Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  results Result[]
+}
+
+model Result {
+  id         String  @id @unique @default(uuid()) @db.Uuid
+  position   Int
+  points     Int
+  time       String? @db.VarChar(255)
+  fastestLap String? @db.VarChar(255)
+
+  driverId String @db.Uuid
+  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  raceId String @db.Uuid
+  race   Race   @relation(fields: [raceId], references: [id], onDelete: Cascade)
+
+  @@unique([driverId, raceId])
+}
